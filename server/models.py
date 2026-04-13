@@ -41,7 +41,7 @@ class Exercise(db.Model):
 
 
     
-class Workout(db.model):
+class Workout(db.Model):
     
     __tablename__ = "workouts"
     
@@ -75,7 +75,7 @@ class WorkoutExercise(db.Model):
     
     __tablename__ = "workout_exercises"
 
-    id = db.Column(primary_key=True)
+    id = db.Column(db.Integer,primary_key=True)
     workout_id = db.Column(db.ForeignKey('workouts.id'))
     exercise_id = db.Column(db.ForeignKey('exercises.id'))
     reps = db.Column(db.Integer)
