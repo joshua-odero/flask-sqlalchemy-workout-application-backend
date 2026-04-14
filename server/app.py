@@ -38,7 +38,10 @@ def get_all_workouts():
         "workouts": workouts
     }
 
-    return make_response(body, 200)
+    # Serialize the body back to JSON
+    _body = WorkoutSchema().dump(body)
+
+    return make_response(_body, 200)
 
 # READ => GET specific /workouts resource
 @app.route("/workouts/<id>", methods=["GET"])
@@ -54,18 +57,23 @@ def get_workout(id):
             "notes": workout.notes
         }
         status = 200
-    else:
-        body = {"msg": f"Workout of {id} not found."}
-        status = 404
 
-    return make_response(body, status)
+        # Serialize the body back to JSON
+        _body = WorkoutSchema().dump(body)
+
+        return make_response(_body, status)
+
+
+    else:
+        
+        return make_response({"error": f"Workout of {id} not found."}, 404)
 
 # CREATE => POST  a /workouts resource
 @app.route("/workouts", methods=["POST"])
 def create_workout():
 
-    #extract json from incoming request
-    data = request.get_json()
+    #extract and deserialize json from incoming request
+    data = WorkoutSchema.load(request.get_json())
 
     #create an instance of new_workout from incoming data
     new_workout = Workout(
@@ -141,7 +149,10 @@ def get_all_exercises():
         "exercises": exercises
     }
 
-    return make_response(body, 200)
+    # Serialize the body back to JSON
+    _body = ExerciseSchema().dump(body)
+
+    return make_response(_body, 200)
 
 # READ => GET a /exercises resource
 @app.route("/exercises/<id>", methods=["GET"])
@@ -157,17 +168,20 @@ def get_exercise(id):
             "equipment_needed": exercise.equipment_needed
         }
         status = 200
-    else:
-        body = {"msg": f"Exercise of id {id} not found."}
-        status = 404
 
-    return make_response(body, status)
+        # Serialize the body back to JSON
+        _body = ExerciseSchema().dump(body)
+
+        return make_response(_body, status)
+    else:
+       
+        return make_response({"error": f"Exercise of id {id} not found."}, 404)
 
 # CREATE => POST a /exercises resource
 @app.route("/exercises", methods=["POST"])
 def create_exercise():
-    #extract json from incoming request
-    data = request.get_json()
+     #extract and deserialize json from incoming request
+    data = ExerciseSchema.load(request.get_json())
 
     #create an instance of new_workout from incoming data
     new_exercise = Workout(
