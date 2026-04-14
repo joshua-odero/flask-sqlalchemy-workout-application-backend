@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import validates
-from marshmallow import Schema, fields
+from marshmallow import Schema, ValidationError, fields, validates_schema
 
 from datetime import date
 
@@ -53,6 +53,20 @@ class ExerciseSchema(Schema):
 
     workouts = fields.Nested(lambda:WorkoutSchema (exclude=("exercises",)))
 
+    @validates_schema('name','category','equipment_needed')
+    def validate_duplicate_exercise(self, data, **kwargs):
+
+        existing_exercise = Exercise.query.filter_by(
+
+            name = data["name"],
+            category = data["category"],
+            equipment_needed =  data["equipment_needed"]
+
+        ).first()
+
+        if existing_exercise:
+            raise ValidationError("Exercise already exists")
+        
 
     
 class Workout(db.Model):
@@ -92,6 +106,18 @@ class WorkoutSchema(Schema):
 
     exercises = fields.Nested(lambda:ExerciseSchema (exclude=("workouts",)))
 
+    @validates_schema('date','duration_minutes','notes')
+    def validate_duplicate_workout(self, data, **kwargs):
+        existing_workout = Workout.query.filter_by(
+
+            date = data["date"],
+            duration_minutes = data["duration_minutes"],
+            notes =  data["notes"]
+
+        ).first()
+
+        if existing_workout:
+            raise ValidationError("Workout already exists")
 
 
 class WorkoutExercise(db.Model):
