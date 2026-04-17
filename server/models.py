@@ -67,6 +67,7 @@ class ExerciseSchema(Schema):
     category = fields.String()
     equipment_needed = fields.Boolean()
 
+    #Exclude exercises from a workouts property to prevent recursion
     workouts = fields.Nested(lambda:WorkoutSchema (exclude=("exercises",)))
 
     #Ensure all exercise fields are not duplicated by first checking it in the db
@@ -138,6 +139,7 @@ class WorkoutSchema(Schema):
     duration_minutes = fields.Integer()
     notes = fields.String()
 
+    #Exclude workouts from an exercise property to prevent recursion
     exercises = fields.Nested(lambda:ExerciseSchema (exclude=("workouts",)))
 
     #Ensure all workout fields are not duplicated by first checking it in the db
