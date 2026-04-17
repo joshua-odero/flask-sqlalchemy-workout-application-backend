@@ -7,7 +7,6 @@ from sqlalchemy.ext.associationproxy import association_proxy
 metadata = MetaData()
 db = SQLAlchemy(metadata=metadata)
 
-
 # Define Models here
 class Exercise(db.Model):
     

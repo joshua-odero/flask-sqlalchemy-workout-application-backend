@@ -233,23 +233,26 @@ def delete_exercise(id):
     except Exception as err:
         return make_response({"error": f"Could not delete exercise: {err}"},404)
 
+# POST => CREATE on /workout_exercises endpoint by adding an exercise to a workout
 @app.route("/workouts/<workout_id>/exercises/<exercise_id>/workout_exercises", methods=["DELETE"])
 def add_exercise_to_workout(workout_id, exercise_id):
 
     workout = Workout.query.filter_by(id=workout_id).first()
     exercise = Exercise.query.filter_by(id=exercise_id).first()
 
+    #Ensure workout and exercise objects exist in the db
     if not workout or not exercise:
         return make_response({"message": "Task or Volunteer was not found!"},404)
     
+    #Do the following if the workout and exercise objects exist in the db
     try:
         workout.exercise.append(exercise)
         db.session.add(workout)
         db.session.commit()
         return make_response({"message": "Exercise assigned to a workout successfully!"}, 201)
 
-    except Exception:
-        return {"message": "An error occurred while assigning a task to the volunteer."}, 500
+    except Exception as e:
+        return {"message": f"An error occurred while assigning an exercise to a workout!: {e}"}, 500
 
 
 #Auto-run flask app with "python app.py" command
