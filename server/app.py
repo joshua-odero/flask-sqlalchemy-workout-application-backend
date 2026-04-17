@@ -234,7 +234,7 @@ def delete_exercise(id):
         return make_response({"error": f"Could not delete exercise: {err}"},404)
 
 # POST => CREATE on /workout_exercises endpoint by adding an exercise to a workout
-@app.route("/workouts/<workout_id>/exercises/<exercise_id>/workout_exercises", methods=["DELETE"])
+@app.route("/workouts/<workout_id>/exercises/<exercise_id>/workout_exercises", methods=["POST"])
 def add_exercise_to_workout(workout_id, exercise_id):
 
     workout = Workout.query.filter_by(id=workout_id).first()
