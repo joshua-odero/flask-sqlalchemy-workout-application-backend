@@ -1,10 +1,11 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import MetaData
 from sqlalchemy.orm import validates
 from marshmallow import Schema, ValidationError, fields, validates_schema
+from sqlalchemy.ext.associationproxy import association_proxy
 
-from datetime import date
-
-db = SQLAlchemy()
+metadata = MetaData()
+db = SQLAlchemy(metadata=metadata)
 
 
 # Define Models here
@@ -17,20 +18,34 @@ class Exercise(db.Model):
     category = db.Column(db.String)
     equipment_needed = db.Column(db.Boolean)
 
-    #exercise.workouts
-    workouts = db.relationship('Workout', secondary= "workout_exercises",
-                back_populates = "exercises" )
+
+    # Association proxy to get workouts for an exercise through workout_exercises table
+    workouts = association_proxy('workout_exercises', 
+                                 'workout', 
+                                 creator=lambda workout_obj: WorkoutExercise(workout=workout_obj))
     
-    #validate category
+    #define a relationship with the association table => workout_exercise.exercise
+    workout_exercises = db.relationship(
+        'WorkoutExercise', 
+        back_populates='exercise', 
+        cascade='all, delete-orphan'
+    )
+    
+    #ensure the category one of the following categories:
+    #"strength", "cardio", "flexibility"
     @validates('category')
-    def validate_category(self, key, value):
+    def validate_category(self, key, category):
         acceptedCategories = ["strength", "cardio", "flexibility"]
 
-        if value not in acceptedCategories:
+        if category not in acceptedCategories:
             return f"The category not found. The following are the accepted categories {acceptedCategories}"
+
+        return category
         
 
     #validate name
+    #ensure the name is  notempty
+    #ensure the name is between 3 and 20 characters
     @validates('name')
     def validate_name(self, key, name):
 
@@ -42,18 +57,21 @@ class Exercise(db.Model):
         if not 3 < len(name) < 20:
             return f"The number of characters should be between 3 and 20"
         
+        return name
+        
 
 #create schema for exercise model
 class ExerciseSchema(Schema):
 
-    id = fields.Int(dump_only=True)
+    id = fields.Integer(dump_only=True)
     name = fields.String()
     category = fields.String()
     equipment_needed = fields.Boolean()
 
     workouts = fields.Nested(lambda:WorkoutSchema (exclude=("exercises",)))
 
-    @validates_schema('name','category','equipment_needed')
+    #Ensure all exercise fields are not duplicated by first checking it in the db
+    @validates_schema
     def validate_duplicate_exercise(self, data, **kwargs):
 
         existing_exercise = Exercise.query.filter_by(
@@ -75,38 +93,56 @@ class Workout(db.Model):
     
 
     id = db.Column(db.Integer,primary_key=True)
-    date = db.Column(db.Date)
+    date = db.Column(db.DateTime)
     duration_minutes = db.Column(db.Integer)
     notes = db.Column(db.Text)
 
-    #workout.exercises
-    exercises = db.relationship('Exercise', secondary = "workout_exercises",
-                back_populates="workouts")
+    # Association proxy to get exercises for a workout through workout_exercises table
+    exercises = association_proxy(
+                    'workout_exercises', 
+                    'exercise',
+                    creator=lambda exercise_obj: WorkoutExercise(exercise=exercise_obj)
+    )
+
+
+    #define a relationship with the association table => workout_exercise.workout
+    workout_exercises = db.relationship(
+        'WorkoutExercise', 
+        back_populates='workout', 
+        cascade='all, delete-orphan'
+    )
     
+    #Ensure the date is not in the future
     @validates("date")
-    def validate_date(self, key, value):
+    def validate_date(self, key, date):
         
         #check if date is correct
-        if value > date.today():
+        if date > date.today():
             raise("Date cannot be in future")
+        
+        return date
 
+    #Ensure the duration minutes of the workout is not negative
     @validates("duration_minutes")
-    def validate_duration_minutes(self, key, value):
+    def validate_duration_minutes(self, key, duration_minutes):
         
         #check if the minutes are negative
-        if value <= 0:
+        if duration_minutes <= 0:
             raise("The duration must be positive")
+        
+        return duration_minutes
 
 #create schema for the workout model
 class WorkoutSchema(Schema):
-    id = fields.Int(dump_only=True)
+    id = fields.Integer(dump_only=True)
     date = fields.Date()
     duration_minutes = fields.Integer()
     notes = fields.String()
 
     exercises = fields.Nested(lambda:ExerciseSchema (exclude=("workouts",)))
 
-    @validates_schema('date','duration_minutes','notes')
+    #Ensure all workout fields are not duplicated by first checking it in the db
+    @validates_schema
     def validate_duplicate_workout(self, data, **kwargs):
         existing_workout = Workout.query.filter_by(
 
@@ -125,11 +161,13 @@ class WorkoutExercise(db.Model):
     __tablename__ = "workout_exercises"
 
     id = db.Column(db.Integer,primary_key=True)
-    workout_id = db.Column(db.ForeignKey('workouts.id'))
-    exercise_id = db.Column(db.ForeignKey('exercises.id'))
     reps = db.Column(db.Integer)
     sets = db.Column(db.Integer)
     duration_seconds = db.Column(db.Integer)
+
+    #Define foreign keys
+    workout_id = db.Column(db.Integer,db.ForeignKey('workouts.id'))
+    exercise_id = db.Column(db.Integer,db.ForeignKey('exercises.id'))
 
     exercise = db.relationship('Exercise', back_populates= "workout_exercises")
     workout = db.relationship('Workout', back_populates= "workout_exercises")
